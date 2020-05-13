@@ -3,7 +3,7 @@
 */
 
 #include"csapp.h"
-#include<iostream>
+
 
 //using namespace std;
 
@@ -15,7 +15,7 @@ void doit(int fd);
 
 void read_requesthdrs(rio_t *rp);
 
-void parse_uri(char *uri, char *filename, char *cgicargs);
+int parse_uri(char *uri, char *filename, char *cgicargs);
 
 void serve_static(int fd, char *filename, int filesize);
 
@@ -93,7 +93,8 @@ void doit(int fd)
 			clienterror(fd,filename,"403", "Forbidden", "Tiny cannot read the file");
 			return;		
 		}
-		server_static(fd, filename, sbuf.st_size);
+		//printf("doit deal with: %s \n" ,filename);
+		serve_static(fd, filename, sbuf.st_size);
 	}
 	//处理动态请求 dynamic
 	else{
@@ -101,7 +102,7 @@ void doit(int fd)
 			clienterror(fd,filename,"403", "Forbidden" , "Tiny cannot run the CGI app");
 			return;
 		}
-		serve_dynamic(fd, filename, cgiargs);	
+		serve_dynamic(fd, filename, cgiagrs);	
 	}
 }
 
@@ -127,7 +128,7 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
 	Rio_writen(fd, buf, strlen(buf));
 	sprintf(buf, "Content-type: text/html\r\n");
 	Rio_writen(fd, buf, strlen(buf));
-	sprintf(buf, "Content-length: %d\r\n\r\n", (int)strlne(body));
+	sprintf(buf, "Content-length: %d\r\n\r\n", (int)strlen(body));
 	Rio_writen(fd, buf, strlen(buf));
 	Rio_writen(fd, body, strlen(body));	
 }
@@ -141,7 +142,7 @@ void read_requesthdrs(rio_t *rp){
 	Rio_readlineb(rp, buf, MAXLINE);
 	while(strcmp(buf, "\r\n")){
 		Rio_readlineb(rp,buf,MAXLINE);
-		printf("%s",buf);/
+		printf("%s",buf);
 	}
 	return;
 }
@@ -182,40 +183,45 @@ int parse_uri(char *uri, char *filename, char *cgiargs){
 
 */
 void serve_static(int fd, char *filename, int filesize){
-	int scrfd;
+	printf("this is respond to static context , filename is %s \n", filename);
+	int srcfd;
 	char *srcp;
 	char filetype[MAXLINE];
 	char buf[MAXLINE];
 	
 	get_filetype(filename, filetype);
+	printf("filename is %s", filename);
 	sprintf(buf, "HTTP/1.0 200 OK\r\n");
 	sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);	
-	sprintf(buf, "%sContent-length: %d\r\n", buf, filesze);
+	sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
 	sprintf(buf, "%sContent-style: %s\r\n\r\n",buf,filetype);
 	Rio_writen(fd, buf, strlen(buf));
+	
 
 	// Send response body to client
-
+	printf("filename is %s", filename);
 	srcfd = Open(filename , O_RDONLY, 0);
 	srcp = Mmap(0,filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
 	Close(srcfd);
-	Rio_writen(fd, srcp. filesize);
+	Rio_writen(fd, srcp, filesize);
 	Munmap(srcp, filesize);
+	printf("filename is %s", filename);
 }
 
 
 void get_filetype(char *filename, char *filetype){
 	if( strstr(filename, ".html") )
-		strcpy(filename, "text/html");
+		strcpy(filetype, "text/html");
 	else if( strstr(filename, ".gif") )
-		strcpy(filename, "image/gif");
+		strcpy(filetype, "image/gif");
 	else if( strstr(filename, ".jpg") )
-		strcpy(filename, "image/jpge");
-	else strcpy(filename, "text/plain");
+		strcpy(filetype, "image/jpge");
+	else strcpy(filetype, "text/plain");
 }
 
 
 void serve_dynamic(int fd, char *filename, char *cgiargs){
+	printf("this is the dynamic adder resp \n");
 	char buf[MAXLINE];
 	char *emptylist[]={NULL};
 
